@@ -112,7 +112,7 @@ resource "aws_route53_record" "www" {
   }
 }
 
-# 2. Amazon Cognito
+# Amazon Cognito
 
 # Cria um User Pool no Amazon Cognito para gerenciar autenticação e registro de usuários no e-commerce
 resource "aws_cognito_user_pool" "users" {
@@ -125,7 +125,7 @@ resource "aws_cognito_user_pool_client" "app" {
   user_pool_id = aws_cognito_user_pool.users.id  # ID do User Pool associado
 }
 
-# 3. API Gateway
+# API Gateway
 
 # Cria uma API REST no API Gateway para servir como back-end do e-commerce
 resource "aws_api_gateway_rest_api" "ecommerce_api" {
@@ -148,25 +148,97 @@ resource "aws_api_gateway_method" "get_items" {
   authorization = "NONE"  # Sem autenticação (alternativas: Cognito, IAM)
 }
 
-# 4. API Handler
-
-# Cria uma função Lambda para manipular as requisições da API (backend serverless)
-resource "aws_lambda_function" "api_handler" {
-  function_name = "ecommerce_api_handler"  # Nome da função Lambda
-  handler       = "index.handler"  # Caminho do handler no código
-  runtime       = "nodejs14.x"  # Ambiente de execução (pode ser alterado para outros runtimes)
-  role          = aws_iam_role.lambda_exec.arn  # Role IAM para permissões da função Lambda
-  filename      = "lambda_function_payload.zip"  # Arquivo zip com o código da função
+# Função Lambda: API Customers
+resource "aws_lambda_function" "api_customers" {
+  function_name = "ecommerce_api_customers"  # Nome da função Lambda
+  handler       = "customers.handler"  # Handler principal da função
+  runtime       = "nodejs18.x"  # Ambiente de execução atualizado
+  role          = aws_iam_role.lambda_exec.arn  # Role IAM para permissões
+  filename      = "lambda_function_payload_customers.zip"  # Arquivo ZIP para a função
+  memory_size   = 128  # Memória alocada
+  timeout       = 15  # Tempo máximo de execução
+  publish       = true  # Publica uma nova versão
+  environment {
+    variables = {
+      FUNCTION_ROLE = "api_customers"
+    }
+  }
 }
 
-# 5. AWS SNS
+# Função Lambda: API Products
+resource "aws_lambda_function" "api_products" {
+  function_name = "ecommerce_api_products"
+  handler       = "products.handler"
+  runtime       = "nodejs18.x"
+  role          = aws_iam_role.lambda_exec.arn
+  filename      = "lambda_function_payload_products.zip"
+  memory_size   = 128
+  timeout       = 15
+  publish       = true
+  environment {
+    variables = {
+      FUNCTION_ROLE = "api_products"
+    }
+  }
+}
+
+# Função Lambda: API Orders
+resource "aws_lambda_function" "api_orders" {
+  function_name = "ecommerce_api_orders"
+  handler       = "orders.handler"
+  runtime       = "nodejs18.x"
+  role          = aws_iam_role.lambda_exec.arn
+  filename      = "lambda_function_payload_orders.zip"
+  memory_size   = 128
+  timeout       = 15
+  publish       = true
+  environment {
+    variables = {
+      FUNCTION_ROLE = "api_orders"
+    }
+  }
+}
+
+# Função Lambda: API Payments
+resource "aws_lambda_function" "api_payments" {
+  function_name = "ecommerce_api_payments"
+  handler       = "payments.handler"
+  runtime       = "nodejs18.x"
+  role          = aws_iam_role.lambda_exec.arn
+  filename      = "lambda_function_payload_payments.zip"
+  memory_size   = 128
+  timeout       = 15
+  publish       = true
+  environment {
+    variables = {
+      FUNCTION_ROLE = "api_payments"
+    }
+  }
+}
+
+# Função Lambda: API Reports
+resource "aws_lambda_function" "api_reports" {
+  function_name = "ecommerce_api_reports"
+  handler       = "reports.handler"
+  runtime       = "nodejs18.x"
+  role          = aws_iam_role.lambda_exec.arn
+  filename      = "lambda_function_payload_reports.zip"
+  memory_size   = 128
+  timeout       = 15
+  publish       = true
+  environment {
+    variables = {
+      FUNCTION_ROLE = "api_reports"
+    }
+  }
+}
+
+# AWS SNS
 
 # Cria um tópico SNS para enviar notificações sobre atualizações de pedidos (ex: e-mail, SMS)
 resource "aws_sns_topic" "order_updates" {
   name = "order-updates"  # Nome do tópico SNS
 }
-
-# 6. AWS SES, AWS SQS e Lambda para Processador de Pagamento
 
 # Configura o domínio para envio de e-mails com SES, usado para enviar notificações e emails transacionais
 resource "aws_ses_domain_identity" "ecommerce" {
@@ -202,7 +274,7 @@ resource "aws_lambda_function" "payment_processor" {
   filename      = "lambda_function_payload.zip"  # Arquivo zip com o código da função
 }
 
-# 7. Amazon DynamoDB
+# Amazon DynamoDB
 
 # Cria uma tabela DynamoDB para armazenar informações de clientes
 resource "aws_dynamodb_table" "customers" {
@@ -216,7 +288,7 @@ resource "aws_dynamodb_table" "customers" {
 }
 
 # Cria uma tabela DynamoDB para armazenar pedidos
-resource "aws_dynamodb_table" "orders" {
+resource "" "oaws_dynamodb_tablerders" {
   name         = "Orders"  # Nome da tabela
   hash_key     = "orderId"  # Chave primária da tabela (ID do pedido)
   attribute {
@@ -328,8 +400,28 @@ output "api_gateway_resource_id" {
 }
 
 # Lambda Function Outputs
-output "lambda_api_handler_arn" {
-  value       = aws_lambda_function.api_handler.arn
+output "lambda_api_customers_arn" {
+  value       = aws_lambda_function.api_customers.arn
+  description = "ARN da função Lambda que atua como handler da API."
+}
+
+output "lambda_api_products_arn" {
+  value       = aws_lambda_function.api_products.arn
+  description = "ARN da função Lambda que atua como handler da API."
+}
+
+output "lambda_api_orders_arn" {
+  value       = aws_lambda_function.api_orders.arn
+  description = "ARN da função Lambda que atua como handler da API."
+}
+
+output "lambda_api_reports_arn" {
+  value       = aws_lambda_function.api_reports.arn
+  description = "ARN da função Lambda que atua como handler da API."
+}
+
+output "lambda_api_payments_arn" {
+  value       = aws_lambda_function.api_payments.arn
   description = "ARN da função Lambda que atua como handler da API."
 }
 
