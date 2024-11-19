@@ -89,6 +89,85 @@ resource "aws_cloudfront_distribution" "cdn" {
     cloudfront_default_certificate = true  # Usa o certificado SSL padrão do CloudFront
   }
 }
+
+# Definir o AWS WAF WebACL
+resource "aws_wafv2_web_acl" "web_acl" {
+  name        = "ecommerce-web-acl"
+  scope       = "CLOUDFRONT" # O WAF está associado ao CloudFront
+  description = "Web ACL para proteger o CloudFront"
+  default_action {
+    allow {} # Ação padrão é permitir
+  }
+
+  rule {
+    name     = "block-bad-actors"
+    priority = 0
+
+    action {
+      block {} # Bloqueia solicitações que correspondam ao critério
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "block-bad-actors"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "web-acl-metrics"
+    sampled_requests_enabled   = true
+  }
+}
+
+# Associar o WAF à distribuição do CloudFront
+resource "aws_cloudfront_distribution" "cdn" {
+  origin {
+    domain_name = aws_s3_bucket.ecommerce_bucket.bucket_regional_domain_name
+    origin_id   = "S3-ecommerce"
+
+    s3_origin_config {
+      origin_access_identity = aws_cloudfront_origin_access_identity.oai.cloudfront_access_identity_path
+    }
+  }
+
+  enabled = true
+
+  default_cache_behavior {
+    target_origin_id       = "S3-ecommerce"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
+    cached_methods         = ["GET", "HEAD"]
+
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+
+  web_acl_id = aws_wafv2_web_acl.web_acl.arn # Associa o WebACL ao CloudFront
+}
+
 # Configura a identidade de acesso de origem (Origin Access Identity - OAI) para permitir que o CloudFront acesse o bucket privado no S3
  resource "aws_cloudfront_origin_access_identity" "oai" {
    comment = "Acesso de CloudFront ao bucket S3 para ecommerce"
