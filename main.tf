@@ -312,6 +312,58 @@ resource "aws_lambda_function" "api_reports" {
   }
 }
 
+# Função Lambda: api_response_handler
+resource "aws_lambda_function" "api_response_handler" {
+  function_name = "ecommerce_api_response_handler"
+  handler       = "api_response_handler"
+  runtime       = "nodejs18.x"
+  role          = aws_iam_role.lambda_exec.arn
+  filename      = "lambda_function_payload_api_response_handler.zip"
+  memory_size   = 128
+  timeout       = 15
+  publish       = true
+  environment {
+    variables = {
+      FUNCTION_ROLE = "api_response_handler"
+    }
+  }
+}
+
+# Função Lambda: products_functions
+resource "aws_lambda_function" "products_functions" {
+  function_name = "ecommerce_products_functions"
+  handler       = "products_functions"
+  runtime       = "nodejs18.x"
+  role          = aws_iam_role.lambda_exec.arn
+  filename      = "lambda_function_payload_products_functions.zip"
+  memory_size   = 128
+  timeout       = 15
+  publish       = true
+  environment {
+    variables = {
+      FUNCTION_ROLE = "products_functions"
+    }
+  }
+}
+
+
+# Função Lambda: orders_functions
+resource "aws_lambda_function" "orders_functions" {
+  function_name = "ecommerce_orders_functions"
+  handler       = "orders_functions"
+  runtime       = "nodejs18.x"
+  role          = aws_iam_role.lambda_exec.arn
+  filename      = "lambda_function_payload_orders_functions.zip"
+  memory_size   = 128
+  timeout       = 15
+  publish       = true
+  environment {
+    variables = {
+      FUNCTION_ROLE = "orders_functions"
+    }
+  }
+}
+
 # AWS SNS
 
 # Cria um tópico SNS para enviar notificações sobre atualizações de pedidos (ex: e-mail, SMS)
@@ -507,6 +559,20 @@ output "lambda_api_payments_arn" {
 output "lambda_payment_processor_arn" {
   value       = aws_lambda_function.payment_processor.arn
   description = "ARN da função Lambda que atua como processador de pagamentos."
+}
+output "lambda_api_response_handler_arn" {
+  value       = aws_lambda_function.api_response_handler.arn
+  description = "ARN da função Lambda que atua como response handler."
+}
+
+output "lambda_products_functions_arn" {
+  value       = aws_lambda_function.products_functions.arn
+  description = "ARN da função Lambda que atua como products functions."
+}
+
+output "lambda_orders_functions_arn" {
+  value       = aws_lambda_function.orders_functions.arn
+  description = "ARN da função Lambda que atua como orders functions."
 }
 
 # SNS Topic Output
